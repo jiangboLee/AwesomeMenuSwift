@@ -29,21 +29,19 @@ class ViewController: UIViewController {
         menu.startPoint = CGPoint(x: 50, y: 200)
         //设置透明度
         menu.alpha = 0.7
-        
-        
-        
-        
-        
-        
+        //设置代理
+        menu.delegate = self
+  
         
     }
+    
+}
 
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
+extension ViewController: AwesomeMenuDelegate {
+
+    func awesomeMenu(menu: AwesomeMenu, didSelectedIndex: NSInteger) {
+        
     }
-
-
 }
 
 

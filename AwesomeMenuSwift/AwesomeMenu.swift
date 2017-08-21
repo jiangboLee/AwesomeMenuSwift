@@ -8,10 +8,14 @@
 
 import UIKit
 
-protocol AwesomeMenuDelegate: NSObjectProtocol {
+@objc protocol AwesomeMenuDelegate: NSObjectProtocol {
     
     func awesomeMenu(menu: AwesomeMenu, didSelectedIndex: NSInteger)
     
+    @objc optional func awesomeMenuDidFinishAnimationClose(menu: AwesomeMenu)
+    @objc optional func awesomeMenuDidFinishAnimationOpen(menu: AwesomeMenu)
+    @objc optional func awesomeMenuWillAnimationClose(menu: AwesomeMenu)
+    @objc optional func awesomeMenuWillAnimationOpen(menu: AwesomeMenu)
 }
 
 class AwesomeMenu: UIView {
@@ -67,8 +71,19 @@ class AwesomeMenu: UIView {
         didSet {
             if isExpanded {
                 setMenu()
+                if let delega = delegate,
+                    delega.responds(to: #selector(AwesomeMenuDelegate.awesomeMenuDidFinishAnimationOpen(menu:))) {
+                    
+                    delega.awesomeMenuWillAnimationOpen!(menu: self)
+                }
+                
             } else {
                 
+                if let delega = delegate,
+                    delega.responds(to: #selector(AwesomeMenuDelegate.awesomeMenuWillAnimationClose(menu:))){
+                    
+                    delega.awesomeMenuWillAnimationClose!(menu: self)
+                }
             }
             if rotateAddButton {
                 let angle = isExpanded ? -CGFloat(Double.pi / 4) : 0
@@ -133,10 +148,10 @@ class AwesomeMenu: UIView {
         
         self.menuItems = menuItems
         self.startButton = startItem
-//        self.startButton.delegate = self
         self.startButton?.center = self.startPoint
         super.init(frame: frame)
         backgroundColor = UIColor.clear
+        self.startButton?.delegate = self
         addSubview(self.startButton!)
         
     }
@@ -187,6 +202,9 @@ class AwesomeMenu: UIView {
         isExpanded = !isExpanded
     }
 
+    
+    
+    
     //MARK: Instance methods
     private func setMenu() {
         let count: Int = menuItems.count
@@ -247,6 +265,7 @@ class AwesomeMenu: UIView {
         animationGroup.duration = CFTimeInterval(animationDuration)
         animationGroup.fillMode = kCAFillModeForwards
         animationGroup.timingFunction = CAMediaTimingFunction(name: kCAMediaTimingFunctionEaseIn)
+        animationGroup.delegate = self
         if flag == menuItems.count - 1 {
             animationGroup.setValue("firstAnimation", forKey: "id")
         }
@@ -284,6 +303,7 @@ class AwesomeMenu: UIView {
         animationGroup.duration = CFTimeInterval(animationDuration)
         animationGroup.fillMode = kCAFillModeForwards
         animationGroup.timingFunction = CAMediaTimingFunction(name: kCAMediaTimingFunctionEaseIn)
+        animationGroup.delegate = self
         if flag == 0 {
             animationGroup.setValue("lastAnimation", forKey: "id")
         }
@@ -294,7 +314,110 @@ class AwesomeMenu: UIView {
     }
 }
 
+//MARK: 动画代理
+extension AwesomeMenu: CAAnimationDelegate {
 
+    func animationDidStop(_ anim: CAAnimation, finished flag: Bool) {
+        
+        if anim.value(forKey: "id") as? String == "lastAnimation" {
+            
+            guard let newDelegate = delegate, newDelegate.responds(to: #selector(AwesomeMenuDelegate.awesomeMenuDidFinishAnimationClose(menu:))) else {
+                return
+            }
+            newDelegate.awesomeMenuDidFinishAnimationClose!(menu: self)
+        }
+        if anim.value(forKey: "id") as? String == "firstAnimation" {
+            
+            guard let newDelegate = delegate, newDelegate.responds(to: #selector(AwesomeMenuDelegate.awesomeMenuDidFinishAnimationOpen(menu:))) else {
+                return
+            }
+            newDelegate.awesomeMenuDidFinishAnimationOpen!(menu: self)
+        }
+    }
+}
+
+//MARK: item动画代理
+extension AwesomeMenu: AwesomeMenuItemDelegate {
+
+    func AwesomeMenuItemTouchesBegan(item: AwesomeMenuItem) {
+        
+        if item == startButton {
+            isExpanded = !isExpanded
+        }
+    }
+    
+    func AwesomeMenuItemTouchesEnd(item: AwesomeMenuItem) {
+        
+        if item == startButton {
+            return
+        }
+        //放大选中按钮
+        let blowup = blowupAnimationAtPoint(p: item.center)
+        item.layer.add(blowup, forKey: "blowup")
+        item.center = item.startPoint!
+        //收缩其他按钮
+        for i in 0..<menuItems.count {
+            
+            let otherItem = menuItems[i]
+            let shrink = shrinkAnimationAtPoint(p: otherItem.center)
+            if otherItem.tag == item.tag {
+                continue
+            }
+            otherItem.layer.add(shrink, forKey: "shrink")
+            otherItem.center = otherItem.startPoint!
+        }
+        isExpanded = false
+        // 旋转大按钮
+        let angle = isExpanded ? -CGFloat(Double.pi / 4) : 0
+        UIView.animate(withDuration: TimeInterval(animationDuration), animations: {
+            self.startButton?.transform = CGAffineTransform(rotationAngle: angle)
+        })
+        
+        if delegate?.responds(to: #selector) {
+            <#code#>
+        }
+    }
+    
+    private func blowupAnimationAtPoint(p: CGPoint) -> CAAnimationGroup {
+    
+        let positionAnimation = CAKeyframeAnimation(keyPath: "position")
+        positionAnimation.values = Array(arrayLiteral: p)
+        positionAnimation.keyTimes = Array(arrayLiteral: 0.3)
+        
+        let scaleAnimation = CABasicAnimation(keyPath: "transform")
+        scaleAnimation.toValue = CATransform3DGetAffineTransform(CATransform3DMakeScale(3, 3, 1))
+        
+        let opacityAnimation = CABasicAnimation(keyPath: "opacity")
+        opacityAnimation.toValue = 0.0
+        
+        let animationGroup = CAAnimationGroup()
+        animationGroup.animations = Array(arrayLiteral: positionAnimation, scaleAnimation, opacityAnimation)
+        animationGroup.duration = CFTimeInterval(animationDuration)
+        animationGroup.fillMode = kCAFillModeForwards
+        
+        return animationGroup
+    }
+    
+    private func shrinkAnimationAtPoint(p: CGPoint) -> CAAnimationGroup {
+    
+        let positionAnimation = CAKeyframeAnimation(keyPath: "position")
+        positionAnimation.values = Array(arrayLiteral: p)
+        positionAnimation.keyTimes = Array(arrayLiteral: 0.3)
+        
+        let scaleAnimation = CABasicAnimation(keyPath: "transform")
+        scaleAnimation.toValue = CATransform3DGetAffineTransform(CATransform3DMakeScale(0.01, 0.01, 1))
+        
+        let opacityAnimation = CABasicAnimation(keyPath: "opacity")
+        opacityAnimation.toValue = 0.0
+        
+        let animationGroup = CAAnimationGroup()
+        animationGroup.animations = Array(arrayLiteral: positionAnimation, scaleAnimation, opacityAnimation)
+        animationGroup.duration = CFTimeInterval(animationDuration)
+        animationGroup.fillMode = kCAFillModeForwards
+        
+        return animationGroup
+    }
+}
 
 
 
