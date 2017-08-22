@@ -25,6 +25,13 @@ class AwesomeMenuItem: UIImageView {
     var endPoint: CGPoint?
     var nearPoint: CGPoint?
     var farPoint: CGPoint?
+    override var isHighlighted: Bool {
+        
+        didSet {
+            
+            contentImageView?.isHighlighted = isHighlighted
+        }
+    }
     
     weak var delegate: AwesomeMenuItemDelegate?
     
@@ -60,9 +67,25 @@ class AwesomeMenuItem: UIImageView {
         
         let touch = (touches as NSSet).anyObject() as! UITouch
         let location: CGPoint = touch.location(in: self)
-        if ScaleRect(rect: bounds, n: 2).contains(location) {
+        if !ScaleRect(rect: bounds, n: 2).contains(location) {
             isHighlighted = false
         }
+    }
+    
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        
+        isHighlighted = false
+        let touch = (touches as NSSet).anyObject() as! UITouch
+        let location = touch.location(in: self)
+        if ScaleRect(rect: bounds, n: 2.0).contains(location) {
+            if delegate!.responds(to: #selector(AwesomeMenuItemDelegate.AwesomeMenuItemTouchesEnd(item:))) {
+                delegate?.AwesomeMenuItemTouchesEnd(item: self)
+            }
+        }
+    }
+    
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        isHighlighted = false
     }
     
     

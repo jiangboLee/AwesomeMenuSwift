@@ -41,6 +41,50 @@ extension ViewController: AwesomeMenuDelegate {
 
     func awesomeMenu(menu: AwesomeMenu, didSelectedIndex: NSInteger) {
         
+        awesomeMenuWillAnimationClose(menu: menu)
+        switch didSelectedIndex {
+        case 0:
+            print("点击了第一个")
+            view.backgroundColor = UIColor.red
+        case 1:
+            print("点击了第二个")
+            view.backgroundColor = UIColor.blue
+        case 2:
+            print("点击了第三个")
+            view.backgroundColor = UIColor.yellow
+        case 3:
+            print("点击了第四个")
+            view.backgroundColor = UIColor.lightGray
+        default:
+            print("")
+        }
+    }
+    
+    func awesomeMenuWillAnimationOpen(menu: AwesomeMenu) {
+        
+        print("WillAnimationOpen")
+        UIView.animate(withDuration: 0.25) { 
+            menu.alpha = 1
+            menu.contentImage = #imageLiteral(resourceName: "icon_pathMenu_cross_normal")
+            menu.highlightedContentImage = #imageLiteral(resourceName: "icon_pathMenu_cross_highlighted")
+        }
+    }
+    
+    func awesomeMenuWillAnimationClose(menu: AwesomeMenu) {
+        print("WillAnimationClose")
+        UIView.animate(withDuration: 0.25) {
+            menu.alpha = 0.7
+            menu.contentImage = #imageLiteral(resourceName: "icon_pathMenu_mainMine_normal")
+            menu.highlightedContentImage = #imageLiteral(resourceName: "icon_pathMenu_mainMine_highlighted")
+        }
+    }
+    
+    func awesomeMenuDidFinishAnimationOpen(menu: AwesomeMenu) {
+        print("DidFinishAnimationOpen")
+    }
+    
+    func awesomeMenuDidFinishAnimationClose(menu: AwesomeMenu) {
+        print("DidFinishAnimationClose")
     }
 }
 

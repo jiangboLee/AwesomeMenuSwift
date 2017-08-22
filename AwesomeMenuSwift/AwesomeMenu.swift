@@ -67,8 +67,11 @@ class AwesomeMenu: UIView {
             }
         }
     }
+    
+    var isBack: Bool = false
     var isExpanded: Bool = false {
         didSet {
+            
             if isExpanded {
                 setMenu()
                 if let delega = delegate,
@@ -85,9 +88,15 @@ class AwesomeMenu: UIView {
                     delega.awesomeMenuWillAnimationClose!(menu: self)
                 }
             }
+            
+            if isBack {
+                isBack = false
+                return
+            }
+            
             if rotateAddButton {
                 let angle = isExpanded ? -CGFloat(Double.pi / 4) : 0
-                UIView.animate(withDuration: TimeInterval(kAwesomeDefault.kAwesomeMenuStartMenuDefaultAnimationDuration), animations: { 
+                UIView.animate(withDuration: TimeInterval(animationDuration), animations: {
                     self.startButton?.transform = CGAffineTransform(rotationAngle: angle)
                 })
             }
@@ -223,7 +232,7 @@ class AwesomeMenu: UIView {
             let farPoint = CGPoint(x: startPoint.x + farRadius * CGFloat(sinf(Float(CGFloat(i) * menuWholeAngle / CGFloat(count-1)))), y: startPoint.x - farRadius * CGFloat(sinf(Float(CGFloat(i) * menuWholeAngle / CGFloat(count-1)))))
             item.farPoint = RotateCGPointAroundCenter(point: farPoint, center: startPoint, angle: rotateAngle)
             item.center = item.startPoint!
-//            item.delegate = self
+            item.delegate = self
             insertSubview(item, belowSubview: startButton!)
         }
     }
@@ -366,6 +375,7 @@ extension AwesomeMenu: AwesomeMenuItemDelegate {
             otherItem.layer.add(shrink, forKey: "shrink")
             otherItem.center = otherItem.startPoint!
         }
+        isBack = true
         isExpanded = false
         // 旋转大按钮
         let angle = isExpanded ? -CGFloat(Double.pi / 4) : 0
@@ -373,8 +383,8 @@ extension AwesomeMenu: AwesomeMenuItemDelegate {
             self.startButton?.transform = CGAffineTransform(rotationAngle: angle)
         })
         
-        if delegate?.responds(to: #selector) {
-            <#code#>
+        if delegate!.responds(to: #selector(AwesomeMenuDelegate.awesomeMenu(menu:didSelectedIndex:))) {
+            delegate?.awesomeMenu(menu: self, didSelectedIndex: item.tag - 1000)
         }
     }
     
@@ -385,7 +395,7 @@ extension AwesomeMenu: AwesomeMenuItemDelegate {
         positionAnimation.keyTimes = Array(arrayLiteral: 0.3)
         
         let scaleAnimation = CABasicAnimation(keyPath: "transform")
-        scaleAnimation.toValue = CATransform3DGetAffineTransform(CATransform3DMakeScale(3, 3, 1))
+        scaleAnimation.toValue = NSValue.init(caTransform3D: CATransform3DMakeScale(3, 3, 1))
         
         let opacityAnimation = CABasicAnimation(keyPath: "opacity")
         opacityAnimation.toValue = 0.0
@@ -405,7 +415,7 @@ extension AwesomeMenu: AwesomeMenuItemDelegate {
         positionAnimation.keyTimes = Array(arrayLiteral: 0.3)
         
         let scaleAnimation = CABasicAnimation(keyPath: "transform")
-        scaleAnimation.toValue = CATransform3DGetAffineTransform(CATransform3DMakeScale(0.01, 0.01, 1))
+        scaleAnimation.toValue = NSValue.init(caTransform3D: CATransform3DMakeScale(0.01, 0.01, 1))
         
         let opacityAnimation = CABasicAnimation(keyPath: "opacity")
         opacityAnimation.toValue = 0.0
